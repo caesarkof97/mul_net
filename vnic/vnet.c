@@ -17,8 +17,7 @@ static void vnet_interrupt(int irq, void *dev_id, struct pt_regs *regs)
    
     if (!dev) 
 		return;
-
-    spin_lock(&priv->lock);
+	
     statusword = priv->status;
 	priv->status = 0;
     if (statusword & SNULL_RX_INTR) 
@@ -31,7 +30,6 @@ static void vnet_interrupt(int irq, void *dev_id, struct pt_regs *regs)
         priv->stats.tx_bytes += priv->tx_packetlen;
         dev_kfree_skb(priv->skb);
     }
-    spin_unlock(&priv->lock);
 
     return;
 }
