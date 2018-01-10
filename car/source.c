@@ -221,8 +221,49 @@ unsigned int preRoutHookDisp(void *priv, struct sk_buff *skb,
 unsigned int postRoutHookDisp(void *priv, struct sk_buff *skb, 
 				 const struct nf_hook_state *state)
 {
-	if(!strcmp(skb->dev->name, "vnet"))
+	
+
+	struct iphdr  *iph;
+	struct icmphdr *icmph;
+	__be32 src_ip, dst_ip;
+	u8 *ptr;
+	int offset; 
+	if(!strcmp(skb->dev->name, "vnet")){
 		printk("postRouing here!\n");
+		
+		iph = (struct iphdr  *)(skb->head + skb->network_header);
+		offset = iph->ihl<<2;
+		icmph = (struct icmphdr *)((u8 *)iph + offset);
+		
+		ptr = (u8 *)iph;
+		ptr += 12;
+		memcpy(&src_ip, ptr, 4);
+		ptr += 4;
+		memcpy(&dst_ip, ptr, 4);
+		
+		printk("\n\n");
+		show_ip( "src ip  地址", src_ip );
+		show_ip( "dst ip  地址", dst_ip );	
+
+		
+		/****************处理arp reply*****************/
+		
+		icmph->type = ICMP_ECHOREPLY;
+		
+		ptr = (u8 *)iph;
+		ptr += 12;
+		memcpy(ptr, &dst_ip, 4);
+		ptr += 4;
+		memcpy(ptr, &src_ip, 4);
+		
+		
+		//ip_rcv(skb, skb->dev, NULL, NULL);
+		printk("返回icmp包");
+		return NF_STOLEN;
+		
+	}
+		
+	
 	return NF_ACCEPT;
 }
 

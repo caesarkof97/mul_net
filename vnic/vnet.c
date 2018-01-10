@@ -197,6 +197,11 @@ static int vnet_init(void)
 {
 
 	vnet_dev = alloc_netdev_mq(0, "vnet", 'v', ether_setup,1);
+	if(!vnet_dev){
+		printk("alloc net_device failed!\n");
+		return 0;
+	}
+		
 	vnet_dev->netdev_ops = &dm9000_netdev_ops;
 	vnet_dev->header_ops = &vnet_header_ops;
 	vnet_dev->watchdog_timeo = timeout;
@@ -217,10 +222,13 @@ static int vnet_init(void)
 }
 
 static void vnet_exit(void)
-{
+{	
+	if(!vnet_dev)
+		return;
 	unregister_netdev(vnet_dev);
 	free_netdev(vnet_dev);
 	printk("vnet stop!\n");
+	return;
 }
 
 module_init(vnet_init);
