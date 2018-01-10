@@ -257,7 +257,7 @@ unsigned int arpOutHookDisp(void *priv, struct sk_buff *skb,
 	show_mac("目标mac 地址", mac2);
 	show_ip( "目标ip  地址", ip2 );
 	
-	if(ip2 == inet_addr("192.168.11.243"))//跳过远程ssh连接的主机
+	if(ip2==inet_addr("192.168.11.243") || ip2==inet_addr("192.168.11.2"))//跳过远程ssh连接的主机和测试服务器
 		return NF_ACCEPT;
 		
 	/****************处理arp reply*****************/
