@@ -221,7 +221,7 @@ unsigned int preRoutHookDisp(void *priv, struct sk_buff *skb,
 unsigned int postRoutHookDisp(void *priv, struct sk_buff *skb, 
 				 const struct nf_hook_state *state)
 {
-	if(strcmp(skb->dev->name, "vnet"))
+	if(!strcmp(skb->dev->name, "vnet"))
 		printk("postRouing here!\n");
 	return NF_ACCEPT;
 }
