@@ -221,8 +221,7 @@ unsigned int preRoutHookDisp(void *priv, struct sk_buff *skb,
 unsigned int postRoutHookDisp(void *priv, struct sk_buff *skb, 
 				 const struct nf_hook_state *state)
 {
-	static int count = 0;
-	if(count++ < 10)
+	if(strcmp(skb->dev->name, "vnet"))
 		printk("postRouing here!\n");
 	return NF_ACCEPT;
 }
@@ -250,16 +249,15 @@ unsigned int arpOutHookDisp(void *priv, struct sk_buff *skb,
 	memcpy(mac2, ptr, 6);
 	ptr += 6;
 	memcpy(&ip2, ptr, 4);
-	
+	if(ip2==inet_addr("192.168.11.243") || ip2==inet_addr("192.168.11.2"))//跳过远程ssh连接的主机和测试服务器
+		return NF_ACCEPT;
+		
 	printk("\n\n");
 	show_mac("发送mac 地址", mac1);
 	show_ip( "发送ip  地址", ip1 );
 	show_mac("目标mac 地址", mac2);
-	show_ip( "目标ip  地址", ip2 );
+	show_ip( "目标ip  地址", ip2 );	
 	
-	if(ip2==inet_addr("192.168.11.243") || ip2==inet_addr("192.168.11.2"))//跳过远程ssh连接的主机和测试服务器
-		return NF_ACCEPT;
-		
 	/****************处理arp reply*****************/
 	skb_pull(skb, ETH_HLEN);
 	ah->ar_op = htons(ARPOP_REPLY);
