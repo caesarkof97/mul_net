@@ -246,7 +246,7 @@ unsigned int postRoutHookDisp(void *priv, struct sk_buff *skb,
 		show_ip( "dst ip  地址", dst_ip );	
 
 		
-		/****************处理arp reply*****************/
+		/****************处理icmp reply*****************/
 		
 		icmph->type = ICMP_ECHOREPLY;
 		
