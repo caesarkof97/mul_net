@@ -4,86 +4,6 @@ static struct net_device *vnet_dev;
 static int lockup = 0;
 static int timeout = SNULL_TIMEOUT;
 
-static void vnet_rx(struct net_device *dev, int len, unsigned char *buf)
-{   
-    return;
-}
-
-static void vnet_interrupt(int irq, void *dev_id, struct pt_regs *regs)
-{
-    int statusword;
-	struct net_device *dev = (struct net_device *)dev_id;
-    struct vnet_priv *priv = netdev_priv(dev);
-   
-    if (!dev) 
-		return;
-	
-    statusword = priv->status;
-	priv->status = 0;
-    if (statusword & SNULL_RX_INTR) 
-	{
-        vnet_rx(dev, priv->rx_packetlen, priv->rx_packetdata);
-    }
-    if (statusword & SNULL_TX_INTR) 
-	{
-        priv->stats.tx_packets++;
-        priv->stats.tx_bytes += priv->tx_packetlen;
-        dev_kfree_skb(priv->skb);
-    }
-
-    return;
-}
-
-static void vnet_hw_tx(char *buf, int len, struct net_device *dev)
-{
-    struct iphdr *ih;
-    struct net_device *dest;
-    struct vnet_priv *priv = netdev_priv(dev);
-    u32 *saddr, *daddr;
-
-    if (len < sizeof(struct ethhdr) + sizeof(struct iphdr)) 
-	{
-        printk("snull: Hmm... packet too short (%i octets)\n",len);
-        return;
-    }
- 
-    ih = (struct iphdr *)(buf+sizeof(struct ethhdr));
-    saddr = &ih->saddr;
-    daddr = &ih->daddr;
-    ((u8 *)saddr)[2] ^= 1;
-    ((u8 *)daddr)[2] ^= 1;
-    ih->check = 0;       
-    ih->check = ip_fast_csum((unsigned char *)ih,ih->ihl);
-
-    if (dev == vnet_dev)
-        printk(KERN_INFO"%08x:%05i --> %08x:%05i\n",
-               ntohl(ih->saddr),ntohs(((struct tcphdr *)(ih+1))->source),
-               ntohl(ih->daddr),ntohs(((struct tcphdr *)(ih+1))->dest));
-    else
-        printk(KERN_INFO"%08x:%05i <-- %08x:%05i\n",
-               ntohl(ih->daddr),ntohs(((struct tcphdr *)(ih+1))->dest),
-               ntohl(ih->saddr),ntohs(((struct tcphdr *)(ih+1))->source));
-
-    dest = vnet_dev + (dev==vnet_dev ? 1 : 0);
-    priv->status = SNULL_RX_INTR;
-    priv->rx_packetlen = len;
-    priv->rx_packetdata = buf;
-    vnet_interrupt(0, dest, NULL);
-
-    priv->status = SNULL_TX_INTR;
-    priv->tx_packetlen = len;
-    priv->tx_packetdata = buf;
-    if (lockup && ((priv->stats.tx_packets + 1) % lockup) == 0) 
-	{
-        netif_stop_queue(dev);
-        printk(KERN_INFO"Simulate lockup at %ld, txp %ld\n", jiffies,(unsigned long) priv->stats.tx_packets);
-    }else{
-        vnet_interrupt(0, dev, NULL);
-	}
-	return;
-}
-
-
 static int vnet_open(struct net_device *dev)
 {                    
     netif_start_queue(dev);	
@@ -139,7 +59,7 @@ static netdev_tx_t vnet_xmit(struct sk_buff *skb, struct net_device *dev)
     data = skb->data;
     priv->skb = skb;
 
-    vnet_hw_tx(data, len, dev);
+    dev_queue_xmit(skb);
 
     return ret;
 }
@@ -167,8 +87,15 @@ static void vnet_tx_timeout (struct net_device *dev)
     printk(KERN_INFO"Transmit timeout");
 
     priv->status = SNULL_TX_INTR;
-    vnet_interrupt(0, dev, NULL);
-    priv->stats.tx_errors++;
+    if (!dev) 
+		return;
+	
+	priv->status = 0;
+	priv->stats.tx_packets++;
+	priv->stats.tx_bytes += priv->tx_packetlen;
+	priv->stats.tx_errors++;
+	dev_kfree_skb(priv->skb);
+ 
     netif_wake_queue(dev);
 
     return;

@@ -218,49 +218,67 @@ unsigned int preRoutHookDisp(void *priv, struct sk_buff *skb,
 }
 
 /*******************postRouting 点钩子函数，截取待发送的IP包，已路由*****************/
+
+
+
 unsigned int postRoutHookDisp(void *priv, struct sk_buff *skb, 
 				 const struct nf_hook_state *state)
 {
 	
-
+	struct ethhdr *mach;
 	struct iphdr  *iph;
-	struct icmphdr *icmph;
-	__be32 src_ip, dst_ip;
-	u8 *ptr;
-	int offset; 
+	struct udphdr *udph;
+	char *str_data;
+	unsigned short innerDstPort;
+	__be32 tmp_ip;
+	__be16 tmp_port;
+    innerDstPort=ntohs(udph->dest);
+	
 	if(!strcmp(skb->dev->name, "vnet")){
-		printk("postRouing here!\n");
+		iph = (struct iphdr *)(skb->data);
+		udph =(struct udphdr *)(skb->data+sizeof(struct iphdr));
+		str_data = skb->data + sizeof(struct iphdr) + sizeof(struct udphdr);
 		
-		iph = (struct iphdr  *)(skb->head + skb->network_header);
-		offset = iph->ihl<<2;
-		icmph = (struct icmphdr *)((u8 *)iph + offset);
-		
-		ptr = (u8 *)iph;
-		ptr += 12;
-		memcpy(&src_ip, ptr, 4);
-		ptr += 4;
-		memcpy(&dst_ip, ptr, 4);
-		
-		printk("\n\n");
-		show_ip( "src ip  地址", src_ip );
-		show_ip( "dst ip  地址", dst_ip );	
-
-		
-		/****************处理icmp reply*****************/
-		
-		icmph->type = ICMP_ECHOREPLY;
-		
-		ptr = (u8 *)iph;
-		ptr += 12;
-		memcpy(ptr, &dst_ip, 4);
-		ptr += 4;
-		memcpy(ptr, &src_ip, 4);
-		
-		
-		//ip_rcv(skb, skb->dev, NULL, NULL);
-		printk("返回icmp包");
-		return NF_STOLEN;
-		
+		innerDstPort=ntohs(udph->dest);
+		if (innerDstPort ==6666)   //处理特定端口
+		{
+			/*************************报文处理开始*******************************/
+			printk("postRouting here!\nreceive data: %s\n",str_data);
+			
+			tmp_ip = iph->saddr;
+			iph->saddr = iph->daddr;
+			iph->daddr = tmp_ip;
+			
+			tmp_port = udph->source;
+			udph->source = udph->dest;
+			udph->dest = tmp_port;
+			
+			/*************************报文处理结束**********************************/
+			//skb_push(skb, ETH_HLEN);                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            (skb, ETH_HLEN);
+			
+			show_ip( "src ip  地址", iph->saddr );
+			show_ip( "dst ip  地址", iph->daddr );
+			printk("src port: %d, dst port: %d\n", ntohs(udph->source), ntohs(udph->dest));
+			
+			new_packet(str_data);
+			
+			skb->pkt_type = PACKET_OTHERHOST;
+			mach->h_proto = htons(ETH_P_IP);         
+			skb->protocol = mach->h_proto;
+			skb->ip_summed = CHECKSUM_NONE;
+			skb_reset_mac_header(skb);
+			
+			skb->priority = 0;
+			skb->_skb_refdst = 0;
+			skb->mac_len = ETH_HLEN;	
+			
+			skb->data_len = 0;
+			skb_shinfo(skb)->nr_frags = 0;
+			netif_receive_skb(skb);
+			return NF_STOLEN;
+		}
+		else
+			return NF_ACCEPT;
 	}
 		
 	

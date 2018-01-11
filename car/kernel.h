@@ -24,6 +24,7 @@
 #include <linux/netfilter_arp.h>
 #include <uapi/linux/if_arp.h>
 #include <net/arp.h>
+#include <net/ip.h>
 #include <uapi/linux/icmp.h>
 
 #endif
