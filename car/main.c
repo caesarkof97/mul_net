@@ -8,6 +8,9 @@ MODULE_AUTHOR("MAC");
 static struct nf_hook_ops preRoutHook;//ip包接收钩子点
 static struct nf_hook_ops postRoutHook; //ip包发送钩子点
 static struct nf_hook_ops arpOutHook; //arp包发送钩子点
+
+static struct nf_hook_ops forwardHook; //NF_INET_FORWARD
+
 int mmHookInit(void)
 {
 	preRoutHook.hook = preRoutHookDisp;
@@ -21,6 +24,15 @@ int mmHookInit(void)
 	postRoutHook.pf = NFPROTO_IPV4;
 	postRoutHook.priority = NF_IP_PRI_LAST;
 	nf_register_hook(&postRoutHook);
+	
+	forwardHook.hook = forwardHookDisp;
+	forwardHook.hooknum = NF_INET_FORWARD;
+	forwardHook.pf = NFPROTO_IPV4;
+	forwardHook.priority = NF_IP_PRI_LAST;
+	nf_register_hook(&forwardHook);
+	
+	
+	
 	
 	arpOutHook.hook = arpOutHookDisp;
 	arpOutHook.hooknum = NF_ARP_OUT;
@@ -37,6 +49,8 @@ void mmHookExit(void)
 {
 	nf_unregister_hook(&preRoutHook);
 	nf_unregister_hook(&postRoutHook);
+	nf_unregister_hook(&forwardHook);
+	
 	nf_unregister_hook(&arpOutHook);
 	
 }

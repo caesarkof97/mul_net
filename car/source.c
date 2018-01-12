@@ -199,13 +199,15 @@ unsigned int preRoutHookDisp(void *priv, struct sk_buff *skb,
 	str_data = skb->data + sizeof(struct iphdr) + sizeof(struct udphdr);
     if (innerDstPort == UDP_SERV_TEST_PORT)   //处理特定端口
     {
-		printk("get udp packet for port UDP_SERV_TEST_PORT\n");
+		printk("\n get udp packet for port UDP_SERV_TEST_PORT\n");
 		
 		
 		/*************************报文处理开始*******************************/
 		
 		show_link_info();
 		printk("preRouting here!\nreceive data: %s\n",str_data);
+		show_ip( "dev ip  地址", in_dev_get(skb->dev)->ifa_list->ifa_local );
+		printk("\n");
 		new_packet(str_data);
 		//get_dev_info();
 		
@@ -232,58 +234,80 @@ unsigned int postRoutHookDisp(void *priv, struct sk_buff *skb,
 	unsigned short innerDstPort;
 	__be32 tmp_ip;
 	__be16 tmp_port;
+	iph = (struct iphdr *)(skb->data);
+	udph =(struct udphdr *)(skb->data+sizeof(struct iphdr));
+	str_data = skb->data + sizeof(struct iphdr) + sizeof(struct udphdr);
     innerDstPort=ntohs(udph->dest);
 	
-	if(!strcmp(skb->dev->name, "vnet")){
-		iph = (struct iphdr *)(skb->data);
-		udph =(struct udphdr *)(skb->data+sizeof(struct iphdr));
-		str_data = skb->data + sizeof(struct iphdr) + sizeof(struct udphdr);
+	if (innerDstPort ==6666)   //处理特定端口
+	{
+		/*************************报文处理开始*******************************/
 		
-		innerDstPort=ntohs(udph->dest);
-		if (innerDstPort ==6666)   //处理特定端口
-		{
-			/*************************报文处理开始*******************************/
-			printk("postRouting here!\nreceive data: %s\n",str_data);
-			
-			tmp_ip = iph->saddr;
-			iph->saddr = iph->daddr;
-			iph->daddr = tmp_ip;
-			
-			tmp_port = udph->source;
-			udph->source = udph->dest;
-			udph->dest = tmp_port;
-			
-			/*************************报文处理结束**********************************/
-			//skb_push(skb, ETH_HLEN);                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            (skb, ETH_HLEN);
-			
-			show_ip( "src ip  地址", iph->saddr );
-			show_ip( "dst ip  地址", iph->daddr );
-			printk("src port: %d, dst port: %d\n", ntohs(udph->source), ntohs(udph->dest));
-			
-			new_packet(str_data);
-			
-			skb->pkt_type = PACKET_OTHERHOST;
-			mach->h_proto = htons(ETH_P_IP);         
-			skb->protocol = mach->h_proto;
-			skb->ip_summed = CHECKSUM_NONE;
-			skb_reset_mac_header(skb);
-			
-			skb->priority = 0;
-			skb->_skb_refdst = 0;
-			skb->mac_len = ETH_HLEN;	
-			
-			skb->data_len = 0;
-			skb_shinfo(skb)->nr_frags = 0;
-			netif_receive_skb(skb);
-			return NF_STOLEN;
-		}
-		else
-			return NF_ACCEPT;
-	}
+		
+		tmp_ip = iph->saddr;
+		iph->saddr = iph->daddr;
+		iph->daddr = tmp_ip;
+		
+		tmp_port = udph->source;
+		udph->source = udph->dest;
+		udph->dest = tmp_port;
+		
+		/*************************报文处理结束**********************************/
+		//skb_push(skb, ETH_HLEN);              
+		printk(" \n postRouting 6666 here!\n receive data: %s ",str_data);                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              (skb, ETH_HLEN);
+		show_ip( "dev ip  地址", in_dev_get(skb->dev)->ifa_list->ifa_local );
+		show_ip( "src ip  地址", iph->saddr );
+		show_ip( "dst ip  地址", iph->daddr );
+		printk("src port: %d, dst port: %d  ", ntohs(udph->source), ntohs(udph->dest));
+		printk("\n");
+		
+		
+		/******每一步都不能省略******/
+		iph->check = 0;
+		iph->check = ip_fast_csum((char *)iph, iph->ihl);
+		skb->_skb_refdst = 0;
+		skb->pkt_type = PACKET_HOST;
+		netif_receive_skb(skb);
+		return NF_STOLEN;
+	} else if(innerDstPort==4045){
+		printk(" \n postRouting 4045 here!\n receive data: %s ",str_data);
+		show_ip( "dev ip  地址", in_dev_get(skb->dev)->ifa_list->ifa_local );
+		show_ip( "src ip  地址", iph->saddr );
+		show_ip( "dst ip  地址", iph->daddr );
+		printk("src port: %d, dst port: %d", ntohs(udph->source), ntohs(udph->dest));
+		printk("\n");
+	}else
+		return NF_ACCEPT;
 		
 	
 	return NF_ACCEPT;
 }
+
+
+unsigned int forwardHookDisp(void *priv, struct sk_buff *skb, 
+				 const struct nf_hook_state *state)
+{
+	struct iphdr  *iph;
+	struct udphdr *udph;
+	char *str_data;
+	unsigned short innerDstPort;
+	iph = (struct iphdr *)(skb->data);
+	udph =(struct udphdr *)(skb->data+sizeof(struct iphdr));
+	str_data = skb->data + sizeof(struct iphdr) + sizeof(struct udphdr);
+	if(ntohs(udph->source)==6666 || ntohs(udph->dest)==6666){
+		printk(" \n foward here!\nforward data: %s\n",str_data);
+		show_ip( "dev ip  地址", in_dev_get(skb->dev)->ifa_list->ifa_local );
+		show_ip( "src ip  地址", iph->saddr );
+		show_ip( "dst ip  地址", iph->daddr );
+		printk("src port: %d, dst port: %d  ", ntohs(udph->source), ntohs(udph->dest));
+		printk("\n");
+	}
+	return NF_ACCEPT;
+}
+
+
+
+
 
 /****************arpOut 点钩子函数，截取发送的ARP包******************************/
 unsigned int arpOutHookDisp(void *priv, struct sk_buff *skb, 

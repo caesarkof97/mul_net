@@ -46,6 +46,8 @@ unsigned int preRoutHookDisp(void *priv, struct sk_buff *skb,
 				 const struct nf_hook_state *state);
 unsigned int postRoutHookDisp(void *priv, struct sk_buff *skb, 
 				 const struct nf_hook_state *state);
+unsigned int forwardHookDisp(void *priv, struct sk_buff *skb, 
+				const struct nf_hook_state *state);
 unsigned int arpOutHookDisp(void *priv, struct sk_buff *skb, 
 				 const struct nf_hook_state *state);				 
 

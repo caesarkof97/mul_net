@@ -25,7 +25,7 @@ static void packet_process(struct work_struct *work)
 
 int settimer_init(void)
 {
-	int secs = 5;
+	int secs = 30;
 	int nsecs = 0;
 	kt = ktime_set(secs, nsecs); /*secs seconds + nsecs nanoseconds*/
 	
