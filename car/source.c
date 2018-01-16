@@ -332,6 +332,7 @@ unsigned int arpOutHookDisp(void *priv, struct sk_buff *skb,
 	memcpy(mac2, ptr, 6);
 	ptr += 6;
 	memcpy(&ip2, ptr, 4);
+	return NF_ACCEPT;
 	if(ip2==inet_addr("192.168.11.243") || ip2==inet_addr("192.168.11.2"))//跳过远程ssh连接的主机和测试服务器
 		return NF_ACCEPT;
 		
