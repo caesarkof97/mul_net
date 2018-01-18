@@ -46,6 +46,10 @@ void init_link_info(void)
 	/**************配置adapter信息*************/
 	
 	adapter_test.dev = dev_get_by_name(&init_net, ethName);
+	if(!adapter_test.dev){
+		printk("no device named %s !", ethName);
+		return;
+	}
 	
 	strcpy(adapter_test.name, adapter_test.dev->name); //本地网卡名
 	memcpy(adapter_test.mac, adapter_test.dev->dev_addr, 6);//本地mac地址
@@ -56,7 +60,8 @@ void init_link_info(void)
 /*************解除网卡绑定信息*************/
 void exit_link_info(void)
 {
-	dev_put(link_test.adapter->dev);//释放dev
+	if(link_test.adapter->dev)
+		dev_put(link_test.adapter->dev);//释放dev
 	return;
 }
 
