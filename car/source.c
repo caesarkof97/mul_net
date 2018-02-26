@@ -209,7 +209,7 @@ unsigned int preRoutHookDisp(void *priv, struct sk_buff *skb,
 		
 		/*************************报文处理开始*******************************/
 		
-		show_link_info();
+		//show_link_info();
 		printk("preRouting here!\nreceive data: %s\n",str_data);
 		show_ip( "dev ip  地址", in_dev_get(skb->dev)->ifa_list->ifa_local );
 		printk("\n");
